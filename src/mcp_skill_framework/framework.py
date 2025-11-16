@@ -25,6 +25,7 @@ class MCPApi:
         servers_dir: str = "servers",
         skills_dir: str = "skills",
         tasks_dir: str = "tasks",
+        use_docker: bool = True,
     ):
         """
         Initialize the API.
@@ -33,6 +34,7 @@ class MCPApi:
             servers_dir: Directory where generated APIs are stored
             skills_dir: Directory where agent skills accumulate
             tasks_dir: Directory where task checkpoints are saved
+            use_docker: Whether to use Docker for code execution (falls back to subprocess if unavailable)
         """
         self.servers_dir = Path(servers_dir)
         self.skills_dir = Path(skills_dir)
@@ -51,6 +53,7 @@ class MCPApi:
             skills_dir=self.skills_dir,
             tasks_dir=self.tasks_dir,
             runtime=self.runtime,
+            use_docker=use_docker,
         )
         self.skill_manager = SkillManager(skills_dir=self.skills_dir)
         self.checkpoint_manager = CheckpointManager(tasks_dir=self.tasks_dir)

@@ -41,9 +41,7 @@ htmlcov/
 servers/
 skills/
 tasks/
-
-# Docker
-.dockerignore
+tmp/
 
 # Logs
 *.log
