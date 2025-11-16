@@ -7,7 +7,7 @@ from pathlib import Path
 import tempfile
 import shutil
 
-from mcp_skill_framework import Framework
+from mcp_skill_framework import MCPApi
 from mcp_skill_framework.skill_manager import SkillManager
 from mcp_skill_framework.checkpoint_manager import CheckpointManager
 
@@ -92,34 +92,34 @@ class TestCheckpointManager:
             assert (task_dir / "data").is_dir()
 
 
-class TestFramework:
-    """Test framework integration."""
+class TestMCPApi:
+    """Test MCPApi integration."""
 
-    def test_framework_initialization(self):
-        """Test that framework initializes correctly."""
+    def test_api_initialization(self):
+        """Test that MCPApi initializes correctly."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            framework = Framework(
+            api = MCPApi(
                 servers_dir=f"{tmpdir}/servers",
                 skills_dir=f"{tmpdir}/skills",
                 tasks_dir=f"{tmpdir}/tasks"
             )
 
-            assert framework.servers_dir.exists()
-            assert framework.skills_dir.exists()
-            assert framework.tasks_dir.exists()
+            assert api.servers_dir.exists()
+            assert api.skills_dir.exists()
+            assert api.tasks_dir.exists()
 
     def test_add_server(self):
         """Test adding MCP servers."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            framework = Framework(
+            api = MCPApi(
                 servers_dir=f"{tmpdir}/servers",
                 skills_dir=f"{tmpdir}/skills",
                 tasks_dir=f"{tmpdir}/tasks"
             )
 
             # Should not raise
-            framework.add_mcp_server("test_server", "echo test")
-            assert "test_server" in framework.connector.servers
+            api.add_mcp_server("test_server", "echo test")
+            assert "test_server" in api.connector.servers
 
 
 if __name__ == "__main__":

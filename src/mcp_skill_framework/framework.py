@@ -1,5 +1,5 @@
 """
-Main Framework class that orchestrates all components.
+Main MCPApi class that orchestrates all components.
 """
 
 from typing import Optional, Dict, Any
@@ -12,7 +12,7 @@ from .skill_manager import SkillManager
 from .checkpoint_manager import CheckpointManager
 
 
-class Framework:
+class MCPApi:
     """
     Main entry point for the MCP Skill Framework.
 
@@ -27,7 +27,7 @@ class Framework:
         tasks_dir: str = "tasks",
     ):
         """
-        Initialize the framework.
+        Initialize the API.
 
         Args:
             servers_dir: Directory where generated APIs are stored
@@ -124,7 +124,7 @@ class Framework:
             Execution result
         """
         if not self._started:
-            raise RuntimeError("Framework not started. Call start() first.")
+            raise RuntimeError("MCPApi not started. Call start() first.")
 
         result = self.executor.execute(code)
 

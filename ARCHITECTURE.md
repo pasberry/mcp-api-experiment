@@ -181,16 +181,16 @@ def resume():
 
 **Public Interface:**
 ```python
-framework = Framework()
-framework.add_mcp_server(name, command)
-framework.generate_apis()
-framework.start()
-framework.execute(code, save_as_skill="name")
-framework.save_skill(code, name, category)
-framework.list_skills()
-framework.create_checkpoint(task_id, state, code)
-framework.resume_checkpoint(task_id)
-framework.stop()
+api = MCPApi()
+api.add_mcp_server(name, command)
+api.generate_apis()
+api.start()
+api.execute(code, save_as_skill="name")
+api.save_skill(code, name, category)
+api.list_skills()
+api.create_checkpoint(task_id, state, code)
+api.resume_checkpoint(task_id)
+api.stop()
 ```
 
 **Lifecycle:**
@@ -222,7 +222,7 @@ servers/{server}/{tool}/README.md
 ```
 Agent writes code
     ↓
-Framework.execute(code)
+MCPApi.execute(code)
     ↓
 CodeExecutor.execute()
     ↓ (subprocess)
@@ -244,7 +244,7 @@ Result returned to agent
 ```
 Agent solves problem
     ↓
-Framework.execute(code, save_as_skill=True)
+MCPApi.execute(code, save_as_skill=True)
     ↓
 SkillManager.save_skill()
     ↓

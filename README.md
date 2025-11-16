@@ -43,26 +43,26 @@ pip install -e .
 ## Quick Start
 
 ```python
-from mcp_skill_framework import Framework
+from mcp_skill_framework import MCPApi
 
-# Initialize framework
-framework = Framework(
+# Initialize API
+api = MCPApi(
     servers_dir="servers",
     skills_dir="skills",
     tasks_dir="tasks"
 )
 
 # Register MCP servers
-framework.add_mcp_server(
+api.add_mcp_server(
     name="filesystem",
     command="npx -y @modelcontextprotocol/server-filesystem /tmp"
 )
 
 # Generate Python APIs from MCP tools
-framework.generate_apis()
+api.generate_apis()
 
 # Start runtime
-framework.start()
+api.start()
 
 # Agent writes code using generated APIs
 agent_code = """
@@ -73,14 +73,14 @@ print(f"File contains {len(content)} characters")
 """
 
 # Execute and optionally save as skill
-result = framework.execute(
+result = api.execute(
     code=agent_code,
     save_as_skill="read_and_count",
     category="file_operations"
 )
 
 # Cleanup
-framework.stop()
+api.stop()
 ```
 
 ## Directory Structure

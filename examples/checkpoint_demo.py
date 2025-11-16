@@ -5,22 +5,22 @@ This example demonstrates task checkpointing and resumption.
 """
 
 import logging
-from mcp_skill_framework import Framework
+from mcp_skill_framework import MCPApi
 
 logging.basicConfig(level=logging.INFO)
 
-# Initialize framework
-framework = Framework()
+# Initialize API
+api = MCPApi()
 
 # Register MCP server
-framework.add_mcp_server(
+api.add_mcp_server(
     name="filesystem",
     command="npx -y @modelcontextprotocol/server-filesystem /tmp"
 )
 
 # Generate APIs and start
-framework.generate_apis()
-framework.start()
+api.generate_apis()
+api.start()
 
 try:
     # Create a checkpoint for a long-running task
@@ -49,7 +49,7 @@ print(f"Processed {current_index}/{total_files} files")
 return {"status": "completed", "processed": current_index}
 """
 
-    framework.create_checkpoint(
+    api.create_checkpoint(
         task_id="file_processing_20251116",
         state=task_state,
         code=resume_code,
@@ -60,16 +60,16 @@ return {"status": "completed", "processed": current_index}
 
     # List checkpoints
     print("\nAvailable checkpoints:")
-    checkpoints = framework.checkpoint_manager.list_checkpoints()
+    checkpoints = api.checkpoint_manager.list_checkpoints()
     for cp in checkpoints:
         print(f"  - {cp['task_id']}: {cp['description']}")
 
     # Resume from checkpoint
     print("\nResuming checkpoint...")
-    result = framework.resume_checkpoint("file_processing_20251116")
+    result = api.resume_checkpoint("file_processing_20251116")
     print(f"Resume result: {result}")
 
 finally:
-    framework.stop()
+    api.stop()
 
 print("\nDone!")

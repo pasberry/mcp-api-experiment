@@ -5,7 +5,7 @@ A framework for building agents with MCP through code execution and skill accumu
 Converts MCP tools into domain-specific Python APIs that agents can compose into skills.
 """
 
-from .framework import Framework
+from .framework import MCPApi
 from .connector import MCPConnector
 from .runtime import MCPRuntime, mcp_call
 from .executor import CodeExecutor
@@ -15,7 +15,7 @@ from .checkpoint_manager import CheckpointManager
 __version__ = "0.1.0"
 
 __all__ = [
-    "Framework",
+    "MCPApi",
     "MCPConnector",
     "MCPRuntime",
     "mcp_call",

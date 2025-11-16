@@ -10,13 +10,13 @@ This example demonstrates:
 
 import logging
 from pathlib import Path
-from mcp_skill_framework import Framework
+from mcp_skill_framework import MCPApi
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 
-# Initialize framework
-framework = Framework(
+# Initialize API
+api = MCPApi(
     servers_dir="servers",
     skills_dir="skills",
     tasks_dir="tasks"
@@ -24,18 +24,18 @@ framework = Framework(
 
 # Register MCP server (filesystem server example)
 # Install with: npx @modelcontextprotocol/server-filesystem
-framework.add_mcp_server(
+api.add_mcp_server(
     name="filesystem",
     command="npx -y @modelcontextprotocol/server-filesystem /tmp"
 )
 
 # Generate Python APIs from MCP tools
 print("Generating APIs...")
-framework.generate_apis()
+api.generate_apis()
 
 # Start the runtime
-print("Starting framework...")
-framework.start()
+print("Starting API...")
+api.start()
 
 try:
     # Example 1: Execute simple code
@@ -51,7 +51,7 @@ except Exception as e:
     print(f"Error: {e}")
 """
 
-    result1 = framework.execute(code1)
+    result1 = api.execute(code1)
     print(f"Result: {result1}")
 
     # Example 2: Execute code and save as skill
@@ -70,7 +70,7 @@ lines = count_lines("/tmp/test.txt")
 print(f"File has {lines} lines")
 """
 
-    result2 = framework.execute(
+    result2 = api.execute(
         code2,
         save_as_skill="count_lines",
         category="file_operations"
@@ -79,14 +79,14 @@ print(f"File has {lines} lines")
 
     # Example 3: List accumulated skills
     print("\n=== Example 3: List Skills ===")
-    skills = framework.list_skills()
+    skills = api.list_skills()
     print(f"Available skills: {len(skills)}")
     for skill in skills:
         print(f"  - {skill['category']}/{skill['name']}")
 
 finally:
     # Cleanup
-    print("\nStopping framework...")
-    framework.stop()
+    print("\nStopping API...")
+    api.stop()
 
 print("\nDone!")
