@@ -192,12 +192,8 @@ class CodeExecutor:
                 # Decode result
                 output = result.decode('utf-8') if isinstance(result, bytes) else result
 
-                return {
-                    'success': True,
-                    'result': output,
-                    'stdout': output,
-                    'stderr': '',
-                }
+                # Parse JSON result from output
+                return self._parse_result(output)
 
             except docker.errors.ContainerError as e:
                 return {
@@ -253,22 +249,8 @@ class CodeExecutor:
                     cwd=str(self.servers_dir.parent),  # Run from project root
                 )
 
-                # Parse result
-                if result.returncode == 0:
-                    return {
-                        'success': True,
-                        'result': result.stdout,
-                        'stdout': result.stdout,
-                        'stderr': result.stderr,
-                    }
-                else:
-                    return {
-                        'success': False,
-                        'result': None,
-                        'stdout': result.stdout,
-                        'stderr': result.stderr,
-                        'error': f"Exit code: {result.returncode}",
-                    }
+                # Parse JSON result from stdout
+                return self._parse_result(result.stdout)
 
             finally:
                 # Clean up temp file
@@ -316,7 +298,11 @@ class CodeExecutor:
         wrapper = f"""
 import sys
 import os
+import json
+import traceback
+import time
 from pathlib import Path
+from io import StringIO
 
 # Add directories to Python path
 sys.path.insert(0, r"{src_path}")
@@ -326,24 +312,116 @@ sys.path.insert(0, r"{skills_path}")
 # Change to project root
 os.chdir(r"{work_dir}")
 
-# Import runtime
-from mcp_skill_framework.runtime import _runtime_instance
-
-# Verify runtime is available
-if _runtime_instance is None:
-    print("ERROR: MCP Runtime not initialized", file=sys.stderr)
-    sys.exit(1)
-
-# Execute user code
+# Import runtime (but don't check if initialized yet - will check on actual mcp_call)
 try:
-    # User code starts here
-{self._indent_code(code, 4)}
-    # User code ends here
+    from mcp_skill_framework.runtime import _runtime_instance, mcp_call
+except ImportError:
+    # Runtime not available - mcp_call will fail if used
+    _runtime_instance = None
+    def mcp_call(*args, **kwargs):
+        raise RuntimeError("MCP Runtime not available in execution environment")
+
+# Capture stdout/stderr
+stdout_capture = StringIO()
+stderr_capture = StringIO()
+original_stdout = sys.stdout
+original_stderr = sys.stderr
+
+# Result structure
+result = {{
+    "success": False,
+    "return_value": None,
+    "stdout": "",
+    "stderr": "",
+    "error": None,
+    "execution_time_ms": 0,
+    "exit_code": 0
+}}
+
+try:
+    # Redirect stdout/stderr
+    sys.stdout = stdout_capture
+    sys.stderr = stderr_capture
+
+    # Start timer
+    start_time = time.time()
+
+    # Execute user code and capture return value
+    # Create a namespace for execution
+    exec_namespace = {{
+        '__name__': '__main__',
+        '__builtins__': __builtins__,
+    }}
+
+    # Execute the code
+    exec(compile('''
+{self._indent_code(code, 0)}
+''', '<agent_code>', 'exec'), exec_namespace)
+
+    # Try to get return value from last expression or __result__
+    return_value = exec_namespace.get('__result__')
+
+    # If no explicit __result__, try to find the last assigned variable
+    # or the result of the last function definition
+    if return_value is None:
+        # Look for common result variable names
+        for var_name in ['result', 'output', 'answer', 'data']:
+            if var_name in exec_namespace:
+                return_value = exec_namespace[var_name]
+                break
+
+    # Calculate execution time
+    execution_time = (time.time() - start_time) * 1000
+
+    # Restore stdout/stderr
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
+
+    # Build success result
+    result["success"] = True
+    result["return_value"] = return_value
+    result["stdout"] = stdout_capture.getvalue()
+    result["stderr"] = stderr_capture.getvalue()
+    result["execution_time_ms"] = execution_time
+    result["exit_code"] = 0
+
 except Exception as e:
-    import traceback
-    print("ERROR:", str(e), file=sys.stderr)
-    traceback.print_exc()
-    sys.exit(1)
+    # Calculate execution time
+    execution_time = (time.time() - start_time) * 1000
+
+    # Restore stdout/stderr
+    sys.stdout = original_stdout
+    sys.stderr = original_stderr
+
+    # Get traceback info
+    tb = traceback.extract_tb(sys.exc_info()[2])
+
+    # Find the frame that corresponds to user code
+    user_code_frame = None
+    for frame in tb:
+        if frame.filename == '<agent_code>':
+            user_code_frame = frame
+            break
+
+    # Build error result
+    result["success"] = False
+    result["return_value"] = None
+    result["stdout"] = stdout_capture.getvalue()
+    result["stderr"] = stderr_capture.getvalue()
+    result["error"] = {{
+        "type": type(e).__name__,
+        "message": str(e),
+        "traceback": traceback.format_exc(),
+        "line_number": user_code_frame.lineno if user_code_frame else None,
+        "code_context": user_code_frame.line if user_code_frame else None
+    }}
+    result["execution_time_ms"] = execution_time
+    result["exit_code"] = 1
+
+# Output result as JSON
+print("__RESULT_START__")
+print(json.dumps(result, default=str))  # default=str handles non-serializable types
+print("__RESULT_END__")
 """
         return wrapper
 
@@ -361,3 +439,79 @@ except Exception as e:
         indent = " " * spaces
         lines = code.split('\n')
         return '\n'.join(indent + line if line.strip() else line for line in lines)
+
+    def _parse_result(self, output: str) -> Dict[str, Any]:
+        """
+        Extract JSON result from stdout between markers.
+
+        Args:
+            output: Raw stdout containing JSON result
+
+        Returns:
+            Parsed result dictionary
+        """
+        try:
+            start_marker = "__RESULT_START__"
+            end_marker = "__RESULT_END__"
+            start_idx = output.find(start_marker)
+            end_idx = output.find(end_marker)
+
+            if start_idx == -1 or end_idx == -1:
+                # Fallback if markers not found
+                logger.warning("Result markers not found in output")
+                return {
+                    "success": False,
+                    "return_value": None,
+                    "stdout": output,
+                    "stderr": "",
+                    "error": {
+                        "type": "ParseError",
+                        "message": "Could not find result markers in output",
+                        "traceback": "",
+                        "line_number": None,
+                        "code_context": None
+                    },
+                    "execution_time_ms": 0,
+                    "exit_code": 1
+                }
+
+            # Extract JSON between markers
+            json_str = output[start_idx + len(start_marker):end_idx].strip()
+            result = json.loads(json_str)
+
+            return result
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to parse JSON result: {e}")
+            return {
+                "success": False,
+                "return_value": None,
+                "stdout": output,
+                "stderr": "",
+                "error": {
+                    "type": "JSONDecodeError",
+                    "message": f"Failed to parse result JSON: {str(e)}",
+                    "traceback": "",
+                    "line_number": None,
+                    "code_context": None
+                },
+                "execution_time_ms": 0,
+                "exit_code": 1
+            }
+        except Exception as e:
+            logger.error(f"Unexpected error parsing result: {e}")
+            return {
+                "success": False,
+                "return_value": None,
+                "stdout": output,
+                "stderr": "",
+                "error": {
+                    "type": type(e).__name__,
+                    "message": str(e),
+                    "traceback": "",
+                    "line_number": None,
+                    "code_context": None
+                },
+                "execution_time_ms": 0,
+                "exit_code": 1
+            }
