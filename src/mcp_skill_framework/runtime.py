@@ -5,6 +5,7 @@ MCP Runtime - Executes MCP calls from generated APIs.
 from typing import Dict, Any, Optional
 import logging
 import asyncio
+import time
 
 from mcp import ClientSession
 
@@ -47,11 +48,13 @@ class MCPRuntime:
     1. Maintains connections to MCP servers
     2. Routes mcp_call() to the correct server
     3. Handles MCP protocol details
+    4. Logs telemetry for all MCP calls
     """
 
-    def __init__(self):
+    def __init__(self, telemetry=None):
         self.servers: Dict[str, ClientSession] = {}
         self._event_loop: Optional[asyncio.AbstractEventLoop] = None
+        self.telemetry = telemetry
         self._setup_global_instance()
 
     def _setup_global_instance(self) -> None:
@@ -101,12 +104,37 @@ class MCPRuntime:
         if not self._event_loop:
             raise RuntimeError("Event loop not initialized")
 
-        # Execute async call
-        result = self._event_loop.run_until_complete(
-            self._async_call(server, tool, params)
-        )
+        # Execute async call with timing
+        start_time = time.time()
+        error = None
+        result = None
+        success = False
 
-        return result
+        try:
+            result = self._event_loop.run_until_complete(
+                self._async_call(server, tool, params)
+            )
+            success = True
+            return result
+
+        except Exception as e:
+            error = e
+            raise
+
+        finally:
+            duration_ms = (time.time() - start_time) * 1000
+
+            # Log telemetry
+            if self.telemetry:
+                self.telemetry.log_mcp_call(
+                    server=server,
+                    tool=tool,
+                    params=params,
+                    success=success,
+                    duration_ms=duration_ms,
+                    result=result,
+                    error=error,
+                )
 
     async def _async_call(
         self,

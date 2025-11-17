@@ -36,6 +36,7 @@ class CodeExecutor:
         tasks_dir: Path,
         runtime: Any,
         use_docker: bool = True,
+        telemetry: Any = None,
     ):
         """
         Initialize code executor.
@@ -46,12 +47,14 @@ class CodeExecutor:
             tasks_dir: Path to task checkpoints
             runtime: MCPRuntime instance
             use_docker: Whether to use Docker (falls back to subprocess if False or Docker unavailable)
+            telemetry: TelemetryLogger instance for logging execution events
         """
         self.servers_dir = servers_dir.resolve()
         self.skills_dir = skills_dir.resolve()
         self.tasks_dir = tasks_dir.resolve()
         self.runtime = runtime
         self.use_docker = use_docker
+        self.telemetry = telemetry
         self.docker_client = None
         self.docker_available = False
 
@@ -112,12 +115,35 @@ class CodeExecutor:
         Returns:
             Dict with keys: 'success', 'result', 'stdout', 'stderr'
         """
+        import time
+
+        # Count lines for telemetry
+        code_lines = len(code.split('\n'))
+        mode = "docker" if self.docker_available else "subprocess"
+
+        start_time = time.time()
+
         if self.docker_available:
             logger.info("Executing code in Docker container...")
-            return self._execute_docker(code, timeout)
+            result = self._execute_docker(code, timeout)
         else:
             logger.info("Executing code in subprocess...")
-            return self._execute_subprocess(code, timeout)
+            result = self._execute_subprocess(code, timeout)
+
+        duration_ms = (time.time() - start_time) * 1000
+
+        # Log telemetry
+        if self.telemetry:
+            self.telemetry.log_code_execution(
+                mode=mode,
+                code_lines=code_lines,
+                success=result.get('success', False),
+                duration_ms=duration_ms,
+                return_value=result.get('return_value'),
+                error=result.get('error'),
+            )
+
+        return result
 
     def _execute_docker(self, code: str, timeout: int) -> Dict[str, Any]:
         """

@@ -43,6 +43,9 @@ skills/
 tasks/
 tmp/
 
+# Telemetry database
+.mcp_telemetry/
+
 # Logs
 *.log
 

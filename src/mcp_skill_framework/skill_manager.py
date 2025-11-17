@@ -6,6 +6,7 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import json
 import logging
+import re
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -22,15 +23,17 @@ class SkillManager:
     4. Provides skill discovery
     """
 
-    def __init__(self, skills_dir: Path):
+    def __init__(self, skills_dir: Path, telemetry: Any = None):
         """
         Initialize skill manager.
 
         Args:
             skills_dir: Directory to store skills
+            telemetry: TelemetryLogger instance for logging skill events
         """
         self.skills_dir = skills_dir
         self.skills_dir.mkdir(parents=True, exist_ok=True)
+        self.telemetry = telemetry
 
     def save_skill(
         self,
@@ -55,6 +58,9 @@ class SkillManager:
         """
         logger.info(f"Saving skill: {category}/{name}")
 
+        # Extract dependencies from code
+        dependencies = self._extract_dependencies(code)
+
         # Create skill directory
         skill_dir = self.skills_dir / category / name
         skill_dir.mkdir(parents=True, exist_ok=True)
@@ -69,8 +75,8 @@ class SkillManager:
         readme_path = skill_dir / "README.md"
         readme_path.write_text(readme_content)
 
-        # Generate and save metadata
-        metadata = self._generate_metadata(name, category, tags)
+        # Generate and save metadata (with dependencies)
+        metadata = self._generate_metadata(name, category, tags, dependencies)
         meta_path = skill_dir / ".meta.json"
         meta_path.write_text(json.dumps(metadata, indent=2))
 
@@ -79,6 +85,16 @@ class SkillManager:
         init_path.write_text(f'"""{docstring or name}"""\n\nfrom .main import *\n')
 
         logger.info(f"Skill saved: {skill_dir}")
+
+        # Log telemetry
+        if self.telemetry:
+            code_lines = len(code.split('\n'))
+            self.telemetry.log_skill_save(
+                category=category,
+                name=name,
+                code_lines=code_lines,
+                dependencies=dependencies,
+            )
 
     def list_skills(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
         """
@@ -235,11 +251,47 @@ from skills.{category}.{name} import *
 
         return readme
 
+    def _extract_dependencies(self, code: str) -> List[Dict[str, str]]:
+        """
+        Extract MCP tool dependencies from code.
+
+        Scans for mcp_call() invocations and extracts server/tool names.
+
+        Args:
+            code: Python code
+
+        Returns:
+            List of dependency dicts with 'server' and 'tool' keys
+        """
+        dependencies = []
+
+        # Pattern to match: mcp_call('server', 'tool', ...)
+        # or mcp_call("server", "tool", ...)
+        pattern = r'mcp_call\s*\(\s*["\']([^"\']+)["\']\s*,\s*["\']([^"\']+)["\']'
+
+        matches = re.finditer(pattern, code)
+        seen = set()
+
+        for match in matches:
+            server = match.group(1)
+            tool = match.group(2)
+            key = (server, tool)
+
+            if key not in seen:
+                dependencies.append({
+                    "server": server,
+                    "tool": tool,
+                })
+                seen.add(key)
+
+        return dependencies
+
     def _generate_metadata(
         self,
         name: str,
         category: str,
         tags: Optional[List[str]] = None,
+        dependencies: Optional[List[Dict[str, str]]] = None,
     ) -> Dict[str, Any]:
         """
         Generate metadata for a skill.
@@ -248,6 +300,7 @@ from skills.{category}.{name} import *
             name: Skill name
             category: Skill category
             tags: Optional tags
+            dependencies: Optional MCP tool dependencies
 
         Returns:
             Metadata dict
@@ -258,4 +311,5 @@ from skills.{category}.{name} import *
             "created": datetime.now().isoformat(),
             "usage_count": 0,
             "tags": tags or [],
+            "dependencies": dependencies or [],
         }

@@ -11,6 +11,7 @@ from .runtime import MCPRuntime, mcp_call
 from .executor import CodeExecutor
 from .skill_manager import SkillManager
 from .checkpoint_manager import CheckpointManager
+from .telemetry import TelemetryLogger
 
 __version__ = "0.1.0"
 
@@ -22,4 +23,5 @@ __all__ = [
     "CodeExecutor",
     "SkillManager",
     "CheckpointManager",
+    "TelemetryLogger",
 ]

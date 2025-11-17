@@ -10,6 +10,7 @@ from .runtime import MCPRuntime
 from .executor import CodeExecutor
 from .skill_manager import SkillManager
 from .checkpoint_manager import CheckpointManager
+from .telemetry import TelemetryLogger
 
 
 class MCPApi:
@@ -26,6 +27,7 @@ class MCPApi:
         skills_dir: str = "skills",
         tasks_dir: str = "tasks",
         use_docker: bool = True,
+        telemetry_db: str = ".mcp_telemetry/telemetry.db",
     ):
         """
         Initialize the API.
@@ -35,6 +37,7 @@ class MCPApi:
             skills_dir: Directory where agent skills accumulate
             tasks_dir: Directory where task checkpoints are saved
             use_docker: Whether to use Docker for code execution (falls back to subprocess if unavailable)
+            telemetry_db: Path to telemetry database (set to None to disable telemetry)
         """
         self.servers_dir = Path(servers_dir)
         self.skills_dir = Path(skills_dir)
@@ -45,17 +48,27 @@ class MCPApi:
         self.skills_dir.mkdir(parents=True, exist_ok=True)
         self.tasks_dir.mkdir(parents=True, exist_ok=True)
 
+        # Initialize telemetry
+        self.telemetry = None
+        if telemetry_db:
+            telemetry_path = Path(telemetry_db)
+            self.telemetry = TelemetryLogger(telemetry_path)
+
         # Initialize components
         self.connector = MCPConnector()
-        self.runtime = MCPRuntime()
+        self.runtime = MCPRuntime(telemetry=self.telemetry)
         self.executor = CodeExecutor(
             servers_dir=self.servers_dir,
             skills_dir=self.skills_dir,
             tasks_dir=self.tasks_dir,
             runtime=self.runtime,
             use_docker=use_docker,
+            telemetry=self.telemetry,
         )
-        self.skill_manager = SkillManager(skills_dir=self.skills_dir)
+        self.skill_manager = SkillManager(
+            skills_dir=self.skills_dir,
+            telemetry=self.telemetry,
+        )
         self.checkpoint_manager = CheckpointManager(tasks_dir=self.tasks_dir)
 
         self._started = False
@@ -113,6 +126,27 @@ class MCPApi:
         self.connector.disconnect_all()
         self.runtime.clear()
         self._started = False
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """
+        Get aggregated telemetry metrics.
+
+        Returns:
+            Dict with tool_metrics, skill_metrics, error_patterns, and health_snapshot
+        """
+        if not self.telemetry:
+            return {
+                "telemetry_enabled": False,
+                "message": "Telemetry is disabled"
+            }
+
+        return {
+            "telemetry_enabled": True,
+            "tool_metrics": self.telemetry.get_tool_metrics(),
+            "skill_metrics": self.telemetry.get_skill_metrics(),
+            "error_patterns": self.telemetry.get_error_patterns(),
+            "health_snapshot": self.telemetry.get_health_snapshot(),
+        }
 
     def execute(self, code: str, save_as_skill: Optional[str] = None, category: str = "general") -> Any:
         """
@@ -198,3 +232,5 @@ class MCPApi:
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager support."""
         self.stop()
+        if self.telemetry:
+            self.telemetry.close()
