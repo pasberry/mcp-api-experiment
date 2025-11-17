@@ -98,11 +98,11 @@ async def main():
     # === AGENT CREATES NEW SKILLS ===
     # Agent writes code using generated APIs
     skill_code = '''
-from servers.filesystem.read_file import read_file
+from servers.filesystem.read_file import filesystem_read_file
 
 def count_lines(filepath):
     """Count lines in a file."""
-    content = read_file(filepath)
+    content = filesystem_read_file(filepath)
     return len(content.split('\\n'))
 '''
 
@@ -148,7 +148,7 @@ The framework generates Python wrapper functions for each MCP tool:
 }
 
 # Generated Python API (clean, few tokens)
-def list_files(path: str) -> dict:
+def google_drive_list_files(path: str) -> dict:
     """List files in directory."""
     return mcp_call('google_drive', 'list_files', {'path': path})
 ```
