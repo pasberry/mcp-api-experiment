@@ -520,6 +520,26 @@ class TelemetryLogger:
             "metrics": results
         }
 
+    def log_event(
+        self,
+        level: str,
+        event_type: str,
+        data: Dict[str, Any],
+        **kwargs
+    ) -> None:
+        """
+        Log a generic event.
+
+        Public wrapper for _log_event to allow custom event logging.
+
+        Args:
+            level: Log level (INFO, WARN, ERROR, DEBUG)
+            event_type: Type of event
+            data: Event data as dict
+            **kwargs: Additional indexed fields (server, tool, skill_category, etc.)
+        """
+        self._log_event(level, event_type, data, **kwargs)
+
     def close(self) -> None:
         """Close database connection."""
         if self.connection:

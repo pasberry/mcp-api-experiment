@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mcp-skill-framework"
 version = "0.1.0"
-description = "A framework for building agents with MCP through code execution and skill accumulation"
+description = "Code generation tool that converts MCP servers into Python libraries and persists agent skills to a database"
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -20,10 +20,10 @@ classifiers = [
 ]
 dependencies = [
     "mcp>=0.1.0",
-    "docker>=7.0.0",
     "pydantic>=2.0.0",
     "jinja2>=3.1.0",
     "httpx>=0.25.0",
+    "aiosqlite>=0.19.0",
 ]
 
 [project.optional-dependencies]

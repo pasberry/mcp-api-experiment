@@ -1,52 +1,58 @@
 """
 Main MCPApi class that orchestrates all components.
+
+This is a code generation and skill persistence tool, not an execution environment.
+The agent runs in its own environment and uses the generated libraries.
 """
 
 from typing import Optional, Dict, Any
 from pathlib import Path
+import asyncio
 
 from .connector import MCPConnector
 from .runtime import MCPRuntime
-from .executor import CodeExecutor
 from .skill_manager import SkillManager
-from .checkpoint_manager import CheckpointManager
 from .telemetry import TelemetryLogger
 
 
 class MCPApi:
     """
-    Main entry point for the MCP Skill Framework.
+    MCP Code Generation and Skill Persistence Tool.
 
-    Orchestrates MCP connection, API generation, code execution,
-    skill persistence, and checkpoint management.
+    This tool:
+    1. Generates Python libraries from MCP servers (servers/ package)
+    2. Hydrates agent skills from database on startup (skills/ package)
+    3. Persists new skills created by agents (filesystem + database)
+
+    The agent runs code in its own environment, not here.
     """
 
     def __init__(
         self,
+        agent_name: str,
         servers_dir: str = "servers",
         skills_dir: str = "skills",
-        tasks_dir: str = "tasks",
-        use_docker: bool = True,
-        telemetry_db: str = ".mcp_telemetry/telemetry.db",
+        skills_db: str = "skills.db",
+        telemetry_db: Optional[str] = ".mcp_telemetry/telemetry.db",
     ):
         """
         Initialize the API.
 
         Args:
-            servers_dir: Directory where generated APIs are stored
-            skills_dir: Directory where agent skills accumulate
-            tasks_dir: Directory where task checkpoints are saved
-            use_docker: Whether to use Docker for code execution (falls back to subprocess if unavailable)
-            telemetry_db: Path to telemetry database (set to None to disable telemetry)
+            agent_name: Agent identifier for skill persistence
+            servers_dir: Directory where generated MCP libraries are stored
+            skills_dir: Directory where agent skills are stored
+            skills_db: Path to skills database
+            telemetry_db: Path to telemetry database (None to disable)
         """
+        self.agent_name = agent_name
         self.servers_dir = Path(servers_dir)
         self.skills_dir = Path(skills_dir)
-        self.tasks_dir = Path(tasks_dir)
+        self.skills_db_path = Path(skills_db)
 
         # Create directories if they don't exist
         self.servers_dir.mkdir(parents=True, exist_ok=True)
         self.skills_dir.mkdir(parents=True, exist_ok=True)
-        self.tasks_dir.mkdir(parents=True, exist_ok=True)
 
         # Initialize telemetry
         self.telemetry = None
@@ -57,25 +63,23 @@ class MCPApi:
         # Initialize components
         self.connector = MCPConnector()
         self.runtime = MCPRuntime(telemetry=self.telemetry)
-        self.executor = CodeExecutor(
-            servers_dir=self.servers_dir,
-            skills_dir=self.skills_dir,
-            tasks_dir=self.tasks_dir,
-            runtime=self.runtime,
-            use_docker=use_docker,
-            telemetry=self.telemetry,
-        )
         self.skill_manager = SkillManager(
             skills_dir=self.skills_dir,
+            agent_name=self.agent_name,
+            db_path=self.skills_db_path,
             telemetry=self.telemetry,
         )
-        self.checkpoint_manager = CheckpointManager(tasks_dir=self.tasks_dir)
 
         self._started = False
 
-    def add_mcp_server(self, name: str, command: str, env: Optional[Dict[str, str]] = None) -> None:
+    def add_mcp_server(
+        self,
+        name: str,
+        command: str,
+        env: Optional[Dict[str, str]] = None
+    ) -> None:
         """
-        Register an MCP server.
+        Register an MCP server for code generation.
 
         Args:
             name: Server identifier (e.g., 'google-drive')
@@ -84,28 +88,43 @@ class MCPApi:
         """
         self.connector.add_server(name, command, env)
 
-    def generate_apis(self) -> None:
+    def generate_libraries(self) -> None:
         """
-        Generate Python APIs from all registered MCP servers.
+        Generate Python libraries from all registered MCP servers.
 
-        Creates semantic directory structure:
-        servers/{server_name}/{tool_name}/main.py
-        servers/{server_name}/{tool_name}/README.md
+        Creates importable packages in servers/ directory:
+        - servers/{server_name}/{tool_name}/main.py
+        - servers/{server_name}/{tool_name}/README.md
+        - servers/{server_name}/{tool_name}/__init__.py
+
+        This is a one-time codegen step. Commit the generated code to git.
         """
-        if not self._started:
-            # Temporarily connect to introspect
-            self.connector.connect_all()
-            self.connector.generate_apis(output_dir=self.servers_dir)
-            self.connector.disconnect_all()
-        else:
-            # Already connected
-            self.connector.generate_apis(output_dir=self.servers_dir)
+        # Temporarily connect to introspect
+        self.connector.connect_all()
+        self.connector.generate_apis(output_dir=self.servers_dir)
+        self.connector.disconnect_all()
+
+    async def hydrate_skills(self) -> int:
+        """
+        Hydrate agent skills from database to filesystem.
+
+        Call this during agent startup to restore previously learned skills.
+        Database is the source of truth - clears filesystem and rebuilds.
+
+        Returns:
+            Number of skills hydrated
+
+        Example:
+            await api.hydrate_skills()
+        """
+        return await self.skill_manager.hydrate_from_database()
 
     def start(self) -> None:
         """
-        Start the framework runtime.
+        Start the runtime (connect to MCP servers).
 
-        Connects to all MCP servers and prepares for code execution.
+        The runtime is needed for the generated server libraries to work.
+        Call this when your agent starts up, after hydrating skills.
         """
         if self._started:
             return
@@ -116,9 +135,9 @@ class MCPApi:
 
     def stop(self) -> None:
         """
-        Stop the framework runtime.
+        Stop the runtime (disconnect from MCP servers).
 
-        Disconnects from MCP servers and cleans up resources.
+        Call this when your agent shuts down.
         """
         if not self._started:
             return
@@ -127,12 +146,82 @@ class MCPApi:
         self.runtime.clear()
         self._started = False
 
+    def save_skill(
+        self,
+        code: str,
+        name: str,
+        category: str = "general",
+        tags: Optional[list] = None
+    ) -> None:
+        """
+        Save agent code as a reusable skill.
+
+        Immediately writes to filesystem (so agent can import it) and
+        asynchronously persists to database (for future hydration).
+
+        Args:
+            code: Python code to save
+            name: Skill name
+            category: Skill category
+            tags: Optional tags for discovery
+
+        Example:
+            # Agent writes working code
+            def backup_files(folder_id):
+                from servers.google_drive.list_files import list_files
+                files = list_files(folder_id)
+                return files
+
+            # Save as skill
+            import inspect
+            api.save_skill(
+                code=inspect.getsource(backup_files),
+                name="backup_files",
+                category="data_sync"
+            )
+
+            # Later, agent can import:
+            # from skills.data_sync.backup_files import backup_files
+        """
+        self.skill_manager.save_skill(
+            code=code,
+            name=name,
+            category=category,
+            tags=tags
+        )
+
+    def list_skills(self, category: Optional[str] = None) -> list:
+        """
+        List available skills from filesystem.
+
+        Args:
+            category: Optional category filter
+
+        Returns:
+            List of skill metadata dicts
+        """
+        return self.skill_manager.list_skills(category=category)
+
+    async def get_skill_stats(self) -> Dict[str, Any]:
+        """
+        Get statistics about agent's skills in database.
+
+        Returns:
+            Stats dictionary with counts by category
+
+        Example:
+            stats = await api.get_skill_stats()
+            print(f"Total skills: {stats['total_skills']}")
+            print(f"By category: {stats['by_category']}")
+        """
+        return await self.skill_manager.get_database_stats()
+
     def get_metrics(self) -> Dict[str, Any]:
         """
         Get aggregated telemetry metrics.
 
         Returns:
-            Dict with tool_metrics, skill_metrics, error_patterns, and health_snapshot
+            Dict with telemetry data or disabled message
         """
         if not self.telemetry:
             return {
@@ -143,94 +232,16 @@ class MCPApi:
         return {
             "telemetry_enabled": True,
             "tool_metrics": self.telemetry.get_tool_metrics(),
-            "skill_metrics": self.telemetry.get_skill_metrics(),
-            "error_patterns": self.telemetry.get_error_patterns(),
             "health_snapshot": self.telemetry.get_health_snapshot(),
         }
 
-    def execute(self, code: str, save_as_skill: Optional[str] = None, category: str = "general") -> Any:
-        """
-        Execute agent code in sandboxed environment.
-
-        Args:
-            code: Python code to execute
-            save_as_skill: If provided, save code as a skill with this name
-            category: Category for the skill (if saving)
-
-        Returns:
-            Execution result
-        """
-        if not self._started:
-            raise RuntimeError("MCPApi not started. Call start() first.")
-
-        result = self.executor.execute(code)
-
-        if save_as_skill:
-            self.skill_manager.save_skill(
-                code=code,
-                name=save_as_skill,
-                category=category,
-            )
-
-        return result
-
-    def save_skill(self, code: str, name: str, category: str = "general") -> None:
-        """
-        Save code as a reusable skill.
-
-        Args:
-            code: Python code to save
-            name: Skill name
-            category: Skill category
-        """
-        self.skill_manager.save_skill(code=code, name=name, category=category)
-
-    def list_skills(self, category: Optional[str] = None) -> list:
-        """
-        List available skills.
-
-        Args:
-            category: Optional category filter
-
-        Returns:
-            List of skill metadata
-        """
-        return self.skill_manager.list_skills(category=category)
-
-    def create_checkpoint(self, task_id: str, state: Dict[str, Any], code: str) -> None:
-        """
-        Create a checkpoint for a task.
-
-        Args:
-            task_id: Unique task identifier
-            state: State dict to save
-            code: Resume code
-        """
-        self.checkpoint_manager.create_checkpoint(
-            task_id=task_id,
-            state=state,
-            code=code,
-        )
-
-    def resume_checkpoint(self, task_id: str) -> Any:
-        """
-        Resume from a checkpoint.
-
-        Args:
-            task_id: Task identifier
-
-        Returns:
-            Result of resume execution
-        """
-        return self.checkpoint_manager.resume_checkpoint(task_id)
-
     def __enter__(self):
-        """Context manager support."""
+        """Context manager support - starts runtime."""
         self.start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager support."""
+        """Context manager support - stops runtime and closes telemetry."""
         self.stop()
         if self.telemetry:
             self.telemetry.close()
