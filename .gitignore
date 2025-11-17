@@ -43,8 +43,14 @@ skills/
 tasks/
 tmp/
 
+# Test generated content
+test_servers/
+test_skills/
+test_tasks/
+
 # Telemetry database
 .mcp_telemetry/
+.test_telemetry/
 
 # Logs
 *.log
