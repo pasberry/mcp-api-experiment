@@ -13,18 +13,18 @@ This directory contains examples demonstrating the MCP Skill Framework.
 
 3. Install an MCP server (e.g., filesystem):
    ```bash
-   npm install -g @modelcontextprotocol/server-filesystem
+   npx @modelcontextprotocol/server-filesystem
    ```
 
 ## Examples
 
 ### 1. Basic Usage (`basic_usage.py`)
 
-Demonstrates:
-- Connecting to an MCP server
-- Generating Python APIs
-- Executing agent code
-- Saving skills
+Demonstrates the complete workflow:
+- Code generation from MCP servers
+- Skill hydration from database
+- Creating and saving skills
+- Database persistence
 
 **Run:**
 ```bash
@@ -32,95 +32,157 @@ python examples/basic_usage.py
 ```
 
 **What it does:**
-1. Connects to the filesystem MCP server
+1. Registers MCP filesystem server
 2. Generates Python APIs in `servers/filesystem/`
-3. Executes code that uses those APIs
-4. Saves reusable code as a skill in `skills/`
+3. Hydrates existing skills from database
+4. Creates new skills and persists them
+5. Shows database statistics
 
-### 2. Checkpoint Demo (`checkpoint_demo.py`)
+### 2. Skill Persistence Demo (`skill_persistence_demo.py`)
 
 Demonstrates:
-- Creating task checkpoints
-- Saving state as Python code
-- Resuming from checkpoints
+- Creating skills across multiple sessions
+- Skill hydration on agent restart
+- Multi-agent isolation with shared database
 
 **Run:**
 ```bash
-python examples/checkpoint_demo.py
+python examples/skill_persistence_demo.py
 ```
 
 **What it does:**
-1. Creates a checkpoint for a long-running task
-2. Serializes task state as Python code
-3. Demonstrates resuming from that checkpoint
+1. **Session 1**: Agent creates skills and persists to database
+2. **Session 2**: Simulates restart and hydrates skills from DB
+3. **Session 3**: Shows multi-agent isolation using same database
 
 ## Generated Output
 
 After running the examples, you'll see:
 
 ```
-mcp-api-experiment/
-├── servers/           # Generated APIs
+your-project/
+├── servers/              # Generated Python APIs (commit to git)
 │   └── filesystem/
 │       ├── read_file/
 │       │   ├── main.py
 │       │   ├── README.md
 │       │   └── __init__.py
 │       └── ...
-├── skills/            # Accumulated skills
+├── skills/               # Agent skills (ephemeral, from DB)
 │   └── file_operations/
 │       └── count_lines/
 │           ├── main.py
 │           ├── README.md
 │           ├── __init__.py
 │           └── .meta.json
-└── tasks/             # Checkpoints
-    └── file_processing_20251116/
-        ├── checkpoint.py
-        ├── README.md
-        └── .meta.json
+└── skills.db             # SQLite database (source of truth)
 ```
 
-## Exploring Generated APIs
+## Key Concepts
 
-After generating APIs, you can explore them:
+### Code Generation
 
-```bash
-# List generated APIs
-ls -la servers/
+Generated APIs provide clean wrappers around MCP tools:
 
-# Read an API description
-cat servers/filesystem/read_file/README.md
+```python
+# Generated in servers/filesystem/read_file/main.py
+from mcp_skill_framework.runtime import mcp_call
 
-# Read generated Python code
-cat servers/filesystem/read_file/main.py
+def execute(path: str) -> dict:
+    """Read contents of a file."""
+    return mcp_call('filesystem', 'read_file', {'path': path})
+```
+
+### Skill Persistence
+
+Skills are stored in two places:
+1. **Filesystem** (`skills/`) - Immediately available for imports
+2. **Database** (`skills.db`) - Source of truth, survives restarts
+
+### Hydration Workflow
+
+```python
+# On agent startup
+api = MCPApi(agent_name="my-agent", skills_db="skills.db")
+
+# Restore skills from database
+count = await api.hydrate_skills()  # Rebuilds skills/ from DB
+
+# Now agent can import existing skills
+from skills.data_processing.analyze import analyze
 ```
 
 ## Using Skills
 
-Once skills are created, they can be imported and reused:
+Once skills are created, they can be imported like any Python module:
 
 ```python
-from skills.file_operations.count_lines import count_lines
+# Agent creates a skill
+skill_code = '''
+def process_data(items):
+    """Process a list of items."""
+    return [item.upper() for item in items]
+'''
 
-num_lines = count_lines("/path/to/file.txt")
-print(f"File has {num_lines} lines")
+api.save_skill(skill_code, "process_data", "data_processing")
+
+# Later, agent (or another agent) can use it
+from skills.data_processing.process_data import process_data
+
+result = process_data(["hello", "world"])
+```
+
+## Progressive Disclosure
+
+Agents can explore APIs by reading README files:
+
+```bash
+# Agent reads directory structure
+ls servers/filesystem/
+
+# Agent reads specific tool documentation
+cat servers/filesystem/read_file/README.md
+
+# Agent decides which tools to use
+# Then imports only what's needed
+```
+
+This dramatically reduces token usage compared to loading all tool schemas upfront.
+
+## Multi-Agent Support
+
+Multiple agents can share one database:
+
+```python
+# Agent 1
+api1 = MCPApi(agent_name="agent-1", skills_db="shared.db")
+api1.save_skill(code, "skill1", "category1")
+
+# Agent 2
+api2 = MCPApi(agent_name="agent-2", skills_db="shared.db")
+api2.save_skill(code, "skill2", "category2")
+
+# Each agent only sees their own skills
+await api1.hydrate_skills()  # Gets skill1 only
+await api2.hydrate_skills()  # Gets skill2 only
 ```
 
 ## Tips
 
-1. **Progressive Disclosure**: Agents can explore `servers/` by reading README files to decide which APIs to use
+1. **Commit `servers/` to git**: Generated APIs are stable and should be versioned with your agent code
 
-2. **Skill Accumulation**: Over time, `skills/` grows with reusable patterns
+2. **Don't commit `skills/`**: Skills directory is ephemeral, regenerated from database
 
-3. **Checkpointing**: Long-running tasks can be checkpointed and resumed
+3. **Backup `skills.db`**: This is your agent's accumulated knowledge
 
-4. **Token Efficiency**: Agents see clean Python code instead of verbose MCP tool schemas
+4. **Use tags**: Tag skills for better organization and discovery
+
+5. **Iterate on skills**: Skills can be overwritten to improve them over time
 
 ## Next Steps
 
-Try building your own agent that:
-1. Explores available APIs
-2. Writes code to solve problems
-3. Accumulates skills over time
-4. Uses checkpointing for complex tasks
+Build your own agent that:
+1. Generates APIs from MCP servers
+2. Hydrates skills on startup
+3. Creates new skills as it solves problems
+4. Accumulates knowledge in the database
