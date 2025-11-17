@@ -205,6 +205,19 @@ class MCPApi:
         """
         return self.skill_manager.list_skills(category=category)
 
+    def get_skill_categories(self) -> list:
+        """
+        Get list of skill categories with counts.
+
+        Returns:
+            List of dicts with category name and skill count
+
+        Example:
+            categories = api.get_skill_categories()
+            # [{"name": "file_operations", "count": 5}, ...]
+        """
+        return self.skill_manager.get_skill_categories()
+
     async def get_skill_stats(self) -> Dict[str, Any]:
         """
         Get statistics about agent's skills in database.

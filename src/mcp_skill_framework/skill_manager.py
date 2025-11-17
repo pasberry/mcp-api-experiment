@@ -312,6 +312,39 @@ class SkillManager:
 
         return skills
 
+    def get_skill_categories(self) -> List[Dict[str, Any]]:
+        """
+        Get list of skill categories with counts.
+
+        Returns:
+            List of dicts with category name and skill count
+
+        Example:
+            [
+                {"name": "file_operations", "count": 5},
+                {"name": "data_processing", "count": 3}
+            ]
+        """
+        if not self.skills_dir.exists():
+            return []
+
+        categories = []
+        for category_dir in self.skills_dir.iterdir():
+            if not category_dir.is_dir():
+                continue
+
+            # Count skills in this category
+            skill_count = sum(1 for d in category_dir.iterdir()
+                            if d.is_dir() and (d / ".meta.json").exists())
+
+            if skill_count > 0:
+                categories.append({
+                    "name": category_dir.name,
+                    "count": skill_count
+                })
+
+        return sorted(categories, key=lambda x: x["name"])
+
     def get_skill_info(self, category: str, name: str) -> Dict[str, Any]:
         """
         Get detailed info about a skill from filesystem.
