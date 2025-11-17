@@ -151,19 +151,21 @@ class MCPApi:
         code: str,
         name: str,
         category: str = "general",
-        tags: Optional[list] = None
+        tags: Optional[list] = None,
+        persist_to_db: bool = True
     ) -> None:
         """
         Save agent code as a reusable skill.
 
         Immediately writes to filesystem (so agent can import it) and
-        asynchronously persists to database (for future hydration).
+        optionally persists to database asynchronously (for future hydration).
 
         Args:
             code: Python code to save
             name: Skill name
             category: Skill category
             tags: Optional tags for discovery
+            persist_to_db: Whether to persist to database (default True)
 
         Example:
             # Agent writes working code
@@ -187,7 +189,8 @@ class MCPApi:
             code=code,
             name=name,
             category=category,
-            tags=tags
+            tags=tags,
+            persist_to_db=persist_to_db
         )
 
     def list_skills(self, category: Optional[str] = None) -> list:

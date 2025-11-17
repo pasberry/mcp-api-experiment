@@ -10,6 +10,7 @@ import json
 import logging
 import re
 import asyncio
+import threading
 from datetime import datetime
 
 from .database import SkillsDatabase
@@ -159,9 +160,19 @@ class SkillManager:
 
         # Async persist to database (fire and forget)
         if persist_to_db:
-            asyncio.create_task(
-                self._persist_to_database(name, category, code, dependencies, metadata)
-            )
+            try:
+                # Try to create task in running event loop
+                asyncio.create_task(
+                    self._persist_to_database(name, category, code, dependencies, metadata)
+                )
+            except RuntimeError:
+                # No event loop running - run in background thread
+                def run_async():
+                    asyncio.run(
+                        self._persist_to_database(name, category, code, dependencies, metadata)
+                    )
+                thread = threading.Thread(target=run_async, daemon=True)
+                thread.start()
 
     async def _persist_to_database(
         self,
@@ -218,8 +229,8 @@ class SkillManager:
         name: str,
         category: str,
         code: str,
-        dependencies: List[Dict[str, str]],
-        metadata: Dict[str, Any]
+        dependencies: Optional[List[Dict[str, str]]] = None,
+        metadata: Optional[Dict[str, Any]] = None
     ) -> None:
         """
         Write skill to filesystem as importable package.
@@ -231,6 +242,10 @@ class SkillManager:
             dependencies: MCP tool dependencies
             metadata: Additional metadata
         """
+        # Normalize None to empty dict/list
+        dependencies = dependencies or []
+        metadata = metadata or {}
+
         # Create skill directory
         skill_dir = self.skills_dir / category / name
         skill_dir.mkdir(parents=True, exist_ok=True)
