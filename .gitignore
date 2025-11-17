@@ -40,13 +40,11 @@ htmlcov/
 # Generated content (can be regenerated)
 servers/
 skills/
-tasks/
 tmp/
 
 # Test generated content
 test_servers/
 test_skills/
-test_tasks/
 
 # Databases
 .mcp_telemetry/
