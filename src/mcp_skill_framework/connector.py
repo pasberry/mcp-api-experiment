@@ -271,6 +271,6 @@ class MCPConnector:
 
         # Generate __init__.py
         init_path = tool_dir / "__init__.py"
-        init_content = generate_init_py(tool.description)
+        init_content = generate_init_py(tool.description, tool.name)
         init_path.write_text(init_content)
         logger.debug(f"Generated {init_path}")

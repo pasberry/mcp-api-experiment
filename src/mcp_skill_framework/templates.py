@@ -11,7 +11,7 @@ MAIN_PY_TEMPLATE = Template("""\"\"\"{{ description }}\"\"\"
 from mcp_skill_framework.runtime import mcp_call
 
 
-def execute({{ parameters }}) -> {{ return_type }}:
+def {{ tool_name }}({{ parameters }}) -> {{ return_type }}:
     \"\"\"
     {{ description }}
     {% if param_docs %}
@@ -65,9 +65,9 @@ README_TEMPLATE = Template("""# {{ tool_name }}
 ## Example Usage
 
 ```python
-from servers.{{ server_name }}.{{ tool_name }} import execute
+from servers.{{ server_name }}.{{ tool_name }} import {{ tool_name }}
 
-result = execute({{ example_params }})
+result = {{ tool_name }}({{ example_params }})
 print(result)
 ```
 {% if tags %}
@@ -85,9 +85,9 @@ This API was auto-generated from the MCP server: `{{ server_name }}`
 
 INIT_PY_TEMPLATE = Template("""\"\"\"{{ description }}\"\"\"
 
-from .main import execute
+from .main import {{ tool_name }}
 
-__all__ = ['execute']
+__all__ = ['{{ tool_name }}']
 """)
 
 
@@ -122,6 +122,7 @@ def generate_main_py(tool_schema: Any) -> str:
     return MAIN_PY_TEMPLATE.render(
         server=tool_schema.server,
         tool=tool_schema.name,
+        tool_name=tool_schema.name,
         description=tool_schema.description,
         parameters=parameters,
         param_docs=tool_schema.parameters,
@@ -163,17 +164,18 @@ def generate_readme_md(tool_schema: Any) -> str:
     )
 
 
-def generate_init_py(description: str) -> str:
+def generate_init_py(description: str, tool_name: str) -> str:
     """
     Generate __init__.py content.
 
     Args:
         description: Module description
+        tool_name: Name of the tool/function to export
 
     Returns:
         Generated Python code
     """
-    return INIT_PY_TEMPLATE.render(description=description)
+    return INIT_PY_TEMPLATE.render(description=description, tool_name=tool_name)
 
 
 def _python_type_hint(json_type: str) -> str:

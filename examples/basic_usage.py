@@ -65,7 +65,7 @@ async def main():
         skill_code = '''
 """Count lines in a file."""
 
-from servers.filesystem.read_file import execute as read_file
+from servers.filesystem.read_file import read_file
 
 def count_lines(filepath):
     """
@@ -96,7 +96,7 @@ def count_lines(filepath):
         skill_code2 = '''
 """Get file size."""
 
-from servers.filesystem.read_file import execute as read_file
+from servers.filesystem.read_file import read_file
 
 def get_file_size(filepath):
     """
