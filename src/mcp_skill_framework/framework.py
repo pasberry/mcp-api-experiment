@@ -218,6 +218,47 @@ class MCPApi:
         """
         return self.skill_manager.get_skill_categories()
 
+    def list_servers(self) -> list:
+        """
+        List all registered MCP servers with connection status.
+
+        Returns:
+            List of server info dicts
+
+        Example:
+            servers = api.list_servers()
+            # [{"name": "filesystem", "connected": True}, ...]
+        """
+        return self.connector.list_servers()
+
+    def list_mcp_tools(self, server: Optional[str] = None) -> list:
+        """
+        List available MCP tools from connected servers.
+
+        Args:
+            server: Optional server name to filter tools
+
+        Returns:
+            List of tool info dicts with import paths
+
+        Example:
+            # List all tools
+            tools = api.list_mcp_tools()
+
+            # List tools from specific server
+            tools = api.list_mcp_tools(server="filesystem")
+
+            # Each tool dict contains:
+            # {
+            #   "server": "filesystem",
+            #   "name": "read_file",
+            #   "function_name": "filesystem_read_file",
+            #   "import_path": "servers.filesystem.read_file",
+            #   "description": "Read file contents"
+            # }
+        """
+        return self.connector.list_tools(server=server)
+
     async def get_skill_stats(self) -> Dict[str, Any]:
         """
         Get statistics about agent's skills in database.

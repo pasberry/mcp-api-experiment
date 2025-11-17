@@ -11,7 +11,103 @@ from mcp_skill_framework import MCPApi
 
 
 # ===================================================================
-# Discovery Tools for Agent
+# Discovery Tools for Agent - MCP Servers and Tools
+# ===================================================================
+
+def list_mcp_servers(api: MCPApi) -> str:
+    """
+    List all registered MCP servers.
+
+    This function should be exposed as a tool to the agent.
+
+    Args:
+        api: MCPApi instance
+
+    Returns:
+        Formatted string listing all servers
+    """
+    servers = api.list_servers()
+
+    if not servers:
+        return "No MCP servers registered."
+
+    result = "Registered MCP Servers:\n\n"
+
+    for server in servers:
+        status = "✓ Connected" if server['connected'] else "✗ Not Connected"
+        result += f"- **{server['name']}** - {status}\n"
+        result += f"  Command: `{server['command']}`\n\n"
+
+    result += "Use list_mcp_tools() to see available tools from connected servers."
+
+    return result
+
+
+def list_mcp_tools(api: MCPApi, server: Optional[str] = None) -> str:
+    """
+    List available MCP tools.
+
+    This function should be exposed as a tool to the agent.
+
+    Args:
+        api: MCPApi instance
+        server: Optional server name to filter tools
+
+    Returns:
+        Formatted string listing all tools
+    """
+    tools = api.list_mcp_tools(server=server)
+
+    if not tools:
+        if server:
+            return f"No tools found for server '{server}'. Make sure it's connected."
+        return "No tools available. Connect to MCP servers first with api.start()."
+
+    # Group by server
+    by_server = {}
+    for tool in tools:
+        srv = tool['server']
+        if srv not in by_server:
+            by_server[srv] = []
+        by_server[srv].append(tool)
+
+    # Format output
+    if server:
+        result = f"Available Tools from '{server}':\n\n"
+    else:
+        result = "Available MCP Tools:\n\n"
+
+    for srv, srv_tools in sorted(by_server.items()):
+        result += f"## {srv.replace('_', ' ').title()} Server\n\n"
+
+        for tool in sorted(srv_tools, key=lambda x: x['name']):
+            result += f"### {tool['name']}\n"
+            result += f"**Function:** `{tool['function_name']}()`\n"
+            result += f"**Import:** `from {tool['import_path']} import {tool['function_name']}`\n"
+
+            if tool.get('description'):
+                result += f"**Description:** {tool['description']}\n"
+
+            # Show parameters
+            if tool.get('parameters'):
+                params = []
+                for param in tool['parameters']:
+                    param_str = f"{param['name']}"
+                    if param.get('type'):
+                        param_str += f": {param['type']}"
+                    if not param.get('required', True):
+                        param_str += " (optional)"
+                    params.append(param_str)
+                if params:
+                    result += f"**Parameters:** {', '.join(params)}\n"
+
+            result += "\n"
+
+    return result
+
+
+# ===================================================================
+# Discovery Tools for Agent - Skills
 # ===================================================================
 
 def list_available_skills(api: MCPApi, category: Optional[str] = None) -> str:
@@ -155,14 +251,57 @@ async def example_agent_workflow():
     count = await api.hydrate_skills()
     print(f"Loaded {count} skills from database\n")
 
+    # Register an MCP server for demonstration
+    api.add_mcp_server(
+        name="filesystem",
+        command="npx -y @modelcontextprotocol/server-filesystem /tmp"
+    )
+
+    # Generate APIs from MCP servers
+    api.generate_libraries()
+
     # Start MCP runtime
     api.start()
 
     # ===================================================================
-    # Scenario 1: Agent checks what categories exist
+    # Scenario 1: Discover MCP Servers
     # ===================================================================
     print("="*70)
-    print("SCENARIO 1: Discover Categories")
+    print("SCENARIO 1: Discover MCP Servers")
+    print("="*70)
+
+    servers_info = list_mcp_servers(api)
+    print(servers_info)
+    print()
+
+    # ===================================================================
+    # Scenario 2: Discover MCP Tools
+    # ===================================================================
+    print("="*70)
+    print("SCENARIO 2: Discover MCP Tools")
+    print("="*70)
+
+    # List all tools
+    all_tools = list_mcp_tools(api)
+    print(all_tools)
+    print()
+
+    # ===================================================================
+    # Scenario 3: Discover Tools from Specific Server
+    # ===================================================================
+    print("="*70)
+    print("SCENARIO 3: Filter Tools by Server")
+    print("="*70)
+
+    fs_tools = list_mcp_tools(api, server="filesystem")
+    print(fs_tools)
+    print()
+
+    # ===================================================================
+    # Scenario 4: Agent checks what skill categories exist
+    # ===================================================================
+    print("="*70)
+    print("SCENARIO 4: Discover Skill Categories")
     print("="*70)
 
     categories_info = get_skill_categories(api)
@@ -170,10 +309,10 @@ async def example_agent_workflow():
     print()
 
     # ===================================================================
-    # Scenario 2: Agent lists all skills
+    # Scenario 5: Agent lists all skills
     # ===================================================================
     print("="*70)
-    print("SCENARIO 2: List All Skills")
+    print("SCENARIO 5: List All Skills")
     print("="*70)
 
     all_skills = list_available_skills(api)
@@ -181,10 +320,10 @@ async def example_agent_workflow():
     print()
 
     # ===================================================================
-    # Scenario 3: Agent creates a new skill
+    # Scenario 6: Agent creates a new skill
     # ===================================================================
     print("="*70)
-    print("SCENARIO 3: Create New Skill")
+    print("SCENARIO 6: Create New Skill")
     print("="*70)
 
     # Agent writes and tests code
@@ -229,10 +368,10 @@ def parse_csv(csv_text: str, delimiter: str = ",") -> list:
     print()
 
     # ===================================================================
-    # Scenario 4: Agent filters by category
+    # Scenario 7: Agent filters by category
     # ===================================================================
     print("="*70)
-    print("SCENARIO 4: List Skills in Specific Category")
+    print("SCENARIO 7: List Skills in Specific Category")
     print("="*70)
 
     category_skills = list_available_skills(api, category="text_processing")
@@ -240,10 +379,10 @@ def parse_csv(csv_text: str, delimiter: str = ",") -> list:
     print()
 
     # ===================================================================
-    # Scenario 5: Agent uses the new skill immediately
+    # Scenario 8: Agent uses the new skill immediately
     # ===================================================================
     print("="*70)
-    print("SCENARIO 5: Use New Skill Immediately")
+    print("SCENARIO 8: Use New Skill Immediately")
     print("="*70)
 
     # Import the skill we just created
@@ -271,49 +410,83 @@ You are an AI agent with access to MCP tools and reusable skills.
 
 1. **MCP Tools** (servers/):
    - Generated Python wrappers for MCP servers
-   - Explore servers/ directory for available tools
-   - Each tool has a README.md with usage examples
+   - Functions are named {server}_{tool} (e.g., filesystem_read_file)
+   - Use list_mcp_servers() to see connected servers
+   - Use list_mcp_tools() to discover available tools
+   - Use list_mcp_tools(server="X") to filter by server
+   - Each tool has import path and parameters
 
 2. **Reusable Skills** (skills/):
-   - Code from previous sessions
+   - Code from previous sessions that worked
    - Use get_skill_categories() to see what exists
    - Use list_available_skills() to discover skills
    - Use list_available_skills(category="X") to filter
+   - Skills are immediately available after creation
 
 ## Your Workflow
 
-1. **Before writing code:**
-   - Check if a skill exists: call list_available_skills()
-   - If found, import and use it
-   - If not, write new code
+1. **Discover available resources:**
+   - Call list_mcp_servers() to see MCP servers
+   - Call list_mcp_tools() to see available MCP tools
+   - Call get_skill_categories() to see skill categories
+   - Call list_available_skills() to see existing skills
 
-2. **When you write working code:**
+2. **Before writing code:**
+   - Check if a skill exists: list_available_skills(category="...")
+   - If found, import and use it (avoid rewriting!)
+   - If not, check MCP tools: list_mcp_tools()
+   - Use MCP tools to write new code
+
+3. **When you write working code:**
    - Test it thoroughly
    - Save as skill: create_skill(code, name, category, tags)
    - Choose appropriate category (see get_skill_categories())
+   - Skill is immediately available for import
 
-3. **Category Guidelines:**
+4. **Category Guidelines:**
    - Use existing categories when possible
    - Create new categories for distinct domains
    - Use lowercase with underscores (e.g., "data_processing")
 
-## Tools Available
+## Discovery Tools Available
 
-- get_skill_categories() -> List existing categories
+**MCP Discovery:**
+- list_mcp_servers() -> See connected MCP servers
+- list_mcp_tools(server=None) -> Discover MCP tools
+  - Shows function names and import paths
+  - Filter by server if needed
+
+**Skill Discovery:**
+- get_skill_categories() -> List existing skill categories
 - list_available_skills(category=None) -> Discover skills
-- create_skill(code, name, category, tags) -> Save working code
+  - Shows import paths and descriptions
+  - Filter by category if needed
 
-## Example
+**Skill Creation:**
+- create_skill(code, name, category, tags) -> Save working code
+  - Immediately available for import
+  - Persisted to database
+
+## Example Workflow
 
 User: "Count lines in /tmp/test.txt"
 
 You:
 1. Call list_available_skills(category="file_operations")
-2. See if "count_lines" skill exists
-3. If yes: import and use it
-4. If no: write code, test it, save as skill
+   → Check if "count_lines" skill exists
+2. If yes: import and use it
+3. If no:
+   a. Call list_mcp_tools(server="filesystem")
+   b. Find filesystem_read_file tool
+   c. Write code using that tool
+   d. Test it
+   e. Save as skill: create_skill(code, "count_lines", "file_operations")
 
-Remember: Build on existing skills instead of rewriting code!
+Remember:
+- Always discover before writing
+- Reuse existing skills instead of rewriting
+- Use MCP tools as building blocks
+- Save working code as skills for future use
 """
 
 
