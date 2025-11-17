@@ -60,7 +60,60 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-## Quick Start
+## Developer Workflow
+
+### Step 1: Generate MCP Server Wrappers (One-Time)
+
+Before running your agent, generate Python wrappers for your MCP servers:
+
+```bash
+# 1. Configure your MCP servers in examples/generate_servers.py
+# 2. Run code generation
+python examples/generate_servers.py
+
+# 3. Commit the generated code
+git add servers/
+git commit -m "Add MCP server wrappers"
+```
+
+This creates the `servers/` package that your agent will import. Only re-run when you add/change MCP servers.
+
+**What it generates:**
+```
+servers/
+├── filesystem/
+│   ├── read_file/
+│   │   ├── main.py              # Python function wrapper
+│   │   ├── README.md            # Tool documentation
+│   │   └── __init__.py
+│   └── write_file/
+└── google_drive/
+    └── list_files/
+```
+
+### Step 2: Build Your Agent
+
+Your agent code imports from the generated `servers/` package:
+
+```python
+# my_agent.py
+from servers.filesystem.read_file import filesystem_read_file
+
+# Use in your agent
+content = filesystem_read_file("/tmp/test.txt")
+```
+
+### Step 3: Run Your Agent
+
+The `servers/` package is now available like any Python library:
+
+```bash
+python my_agent.py
+```
+
+## Quick Start (Agent Runtime)
+
+Once you've generated the `servers/` package (see Developer Workflow above):
 
 ```python
 import asyncio
@@ -75,19 +128,7 @@ async def main():
         skills_db="skills.db"
     )
 
-    # === ONE-TIME: Code Generation ===
-    # Register MCP servers
-    api.add_mcp_server(
-        name="filesystem",
-        command="npx -y @modelcontextprotocol/server-filesystem /tmp"
-    )
-
-    # Generate Python libraries from MCP tools
-    api.generate_libraries()
-    # → Creates servers/filesystem/ package
-    # → Commit servers/ to git with your agent code
-
-    # === EVERY SESSION: Hydrate Skills ===
+    # === HYDRATE SKILLS FROM DATABASE ===
     # Restore skills from database
     count = await api.hydrate_skills()
     print(f"Loaded {count} skills from previous sessions")
