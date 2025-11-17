@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated content (can be regenerated)
+servers/
+skills/
+tasks/
+tmp/
+
+# Test generated content
+test_servers/
+test_skills/
+test_tasks/
+
+# Databases
+.mcp_telemetry/
+.test_telemetry/
+skills.db
+*.db
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
