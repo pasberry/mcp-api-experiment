@@ -1,0 +1,14 @@
+# MCP Skill Framework (use local development version)
+# Install with: pip install -e ..
+
+# LangGraph and dependencies
+langgraph==0.2.58
+langchain-core==0.3.28
+langchain-anthropic==0.3.7
+anthropic==0.42.0
+
+# MCP Server SDK
+mcp==1.3.2
+
+# Additional utilities
+python-dotenv==1.0.0

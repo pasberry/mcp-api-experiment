@@ -99,10 +99,8 @@ class MCPApi:
 
         This is a one-time codegen step. Commit the generated code to git.
         """
-        # Temporarily connect to introspect
-        self.connector.connect_all()
-        self.connector.generate_apis(output_dir=self.servers_dir)
-        self.connector.disconnect_all()
+        # Use the all-in-one method to avoid nested event loop issues
+        self.connector.generate_apis_once(output_dir=self.servers_dir)
 
     async def hydrate_skills(self) -> int:
         """

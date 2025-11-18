@@ -1,0 +1,8 @@
+{
+  "servers": [
+    {
+      "name": "calculator",
+      "command": "python calculator_server.py"
+    }
+  ]
+}

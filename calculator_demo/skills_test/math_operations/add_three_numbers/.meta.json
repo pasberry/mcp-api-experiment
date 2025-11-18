@@ -1,0 +1,12 @@
+{
+  "name": "add_three_numbers",
+  "category": "math_operations",
+  "created": "2025-11-18T06:40:42.968498",
+  "dependencies": [],
+  "tags": [
+    "math",
+    "calculator",
+    "test"
+  ],
+  "description": "Calculate sum of three numbers"
+}
