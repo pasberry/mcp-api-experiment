@@ -1,0 +1,12 @@
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx -y @modelcontextprotocol/server-filesystem /tmp"
+    },
+    {
+      "name": "github",
+      "command": "npx -y @modelcontextprotocol/server-github"
+    }
+  ]
+}
