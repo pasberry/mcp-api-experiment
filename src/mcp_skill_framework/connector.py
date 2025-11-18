@@ -270,6 +270,66 @@ class MCPConnector:
         logger.info(f"Found {len(tool_schemas)} tools in {server_name}")
         return tool_schemas
 
+    def generate_apis_once(self, output_dir: Path) -> None:
+        """
+        Connect, generate APIs, and disconnect in one async flow.
+
+        This method handles the entire code generation lifecycle properly
+        without nested event loop issues.
+
+        Args:
+            output_dir: Directory to write generated APIs
+        """
+        # Get or create event loop
+        try:
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+
+        # Run the whole flow in one async context
+        loop.run_until_complete(self._async_generate_apis_once(output_dir))
+
+    async def _async_generate_apis_once(self, output_dir: Path) -> None:
+        """Async implementation of generate_apis_once."""
+        logger.info(f"Generating APIs to {output_dir}")
+
+        # Ensure output directory exists
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Connect to all servers temporarily
+        await self._async_connect_all()
+
+        try:
+            # Generate APIs for each connected server
+            for server_name, session in self.connections.items():
+                logger.info(f"Generating APIs for {server_name}...")
+
+                # Introspect server (async, no nested event loop)
+                tool_schemas = await self._async_introspect_server(server_name, session)
+
+                # Create server directory
+                server_dir = output_dir / server_name
+                server_dir.mkdir(parents=True, exist_ok=True)
+
+                # Generate API for each tool
+                for tool in tool_schemas:
+                    self._generate_api_files(tool, server_dir)
+
+                logger.info(f"Generated {len(tool_schemas)} APIs for {server_name}")
+        finally:
+            # Disconnect (async, no nested event loop)
+            await self._async_disconnect_all()
+
+        logger.info("API generation complete")
+
+    async def _async_disconnect_all(self) -> None:
+        """Async implementation of disconnect."""
+        if self.exit_stack:
+            await self.exit_stack.__aexit__(None, None, None)
+        self.connections.clear()
+        self.exit_stack = None
+
     def generate_apis(self, output_dir: Path) -> None:
         """
         Generate Python APIs for all connected servers.
