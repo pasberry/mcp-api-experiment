@@ -35,6 +35,9 @@ dev = [
     "mypy>=1.0.0",
 ]
 
+[project.scripts]
+mcp-generate = "mcp_skill_framework.cli:main"
+
 [tool.setuptools.packages.find]
 where = ["src"]
 

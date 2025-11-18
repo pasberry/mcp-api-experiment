@@ -67,9 +67,24 @@ pip install -e ".[dev]"
 Before running your agent, generate Python wrappers for your MCP servers:
 
 ```bash
-# 1. Configure your MCP servers in examples/generate_servers.py
+# 1. Configure your MCP servers in mcp-servers.json
+cat > mcp-servers.json << 'EOF'
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx -y @modelcontextprotocol/server-filesystem /tmp"
+    },
+    {
+      "name": "github",
+      "command": "npx -y @modelcontextprotocol/server-github"
+    }
+  ]
+}
+EOF
+
 # 2. Run code generation
-python examples/generate_servers.py
+mcp-generate mcp-servers.json
 
 # 3. Commit the generated code
 git add servers/
@@ -77,6 +92,18 @@ git commit -m "Add MCP server wrappers"
 ```
 
 This creates the `servers/` package that your agent will import. Only re-run when you add/change MCP servers.
+
+**Alternative**: Use Python API directly:
+```python
+from mcp_skill_framework.cli import generate_servers
+
+generate_servers(
+    servers=[
+        {"name": "filesystem", "command": "npx -y @modelcontextprotocol/server-filesystem /tmp"}
+    ],
+    servers_dir="servers"
+)
+```
 
 **What it generates:**
 ```
