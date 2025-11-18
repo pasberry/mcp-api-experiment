@@ -55,10 +55,10 @@ api = MCPApi(
 )
 
 # Register calculator MCP server
+calculator_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "calculator_server.py")
 api.add_mcp_server(
     name="calculator",
-    command="python",
-    env={"PYTHONPATH": os.path.dirname(os.path.abspath(__file__))}
+    command=f"python {calculator_script}",
 )
 
 print("📦 Starting MCP runtime (connecting to calculator server)...")
@@ -67,7 +67,7 @@ print("✅ MCP runtime ready!\n")
 
 # Initialize LLM
 llm = ChatAnthropic(
-    model="claude-3-5-sonnet-20241022",
+    model="claude-3-haiku-20240307",
     temperature=0,
 )
 
@@ -82,7 +82,7 @@ CRITICAL REQUIREMENTS:
    - from servers.calculator.multiply import calculator_multiply
    - from servers.calculator.divide import calculator_divide
 
-3. Each function call returns a JSON string with {"result": <number>}
+3. Each function call returns a JSON string with {{"result": <number>}}
 4. You MUST parse the JSON response to get the actual number
 5. Write clean, working Python code that solves the problem step by step
 
@@ -99,7 +99,7 @@ result_json = calculator_add(a=5, b=3)
 result_data = json.loads(result_json)
 answer = result_data["result"]
 
-print(f"Answer: {answer}")
+print(f"Answer: {{answer}}")
 ```
 
 ANOTHER EXAMPLE:
@@ -121,7 +121,7 @@ add_result_json = calculator_add(a=intermediate, b=3)
 add_data = json.loads(add_result_json)
 answer = add_data["result"]
 
-print(f"Answer: {answer}")
+print(f"Answer: {{answer}}")
 ```
 
 Now write code to solve this problem: {question}
