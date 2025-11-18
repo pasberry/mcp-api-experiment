@@ -142,6 +142,75 @@ class MCPConnector:
         """
         return self.connections
 
+    def list_servers(self) -> List[Dict[str, Any]]:
+        """
+        List all registered MCP servers with their connection status.
+
+        Returns:
+            List of dicts with server info
+
+        Example:
+            [
+                {"name": "filesystem", "command": "npx ...", "connected": True},
+                {"name": "github", "command": "npx ...", "connected": False}
+            ]
+        """
+        servers = []
+        for name, config in self.servers.items():
+            servers.append({
+                "name": name,
+                "command": config["command"],
+                "connected": name in self.connections
+            })
+        return sorted(servers, key=lambda x: x["name"])
+
+    def list_tools(self, server: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        List available MCP tools from connected servers.
+
+        Args:
+            server: Optional server name to filter tools
+
+        Returns:
+            List of dicts with tool info
+
+        Example:
+            [
+                {
+                    "server": "filesystem",
+                    "name": "read_file",
+                    "description": "Read file contents",
+                    "function_name": "filesystem_read_file",
+                    "import_path": "servers.filesystem.read_file"
+                }
+            ]
+        """
+        tools = []
+
+        # Determine which servers to introspect
+        if server:
+            server_names = [server] if server in self.connections else []
+        else:
+            server_names = list(self.connections.keys())
+
+        # Introspect each server
+        for server_name in server_names:
+            try:
+                tool_schemas = self.introspect_server(server_name)
+                for tool in tool_schemas:
+                    tools.append({
+                        "server": server_name,
+                        "name": tool.name,
+                        "description": tool.description,
+                        "function_name": f"{server_name}_{tool.name}",
+                        "import_path": f"servers.{server_name}.{tool.name}",
+                        "parameters": tool.parameters
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to introspect {server_name}: {e}")
+
+        return tools
+
     def introspect_server(self, server_name: str) -> List[ToolSchema]:
         """
         Introspect an MCP server to get available tools.
@@ -271,6 +340,6 @@ class MCPConnector:
 
         # Generate __init__.py
         init_path = tool_dir / "__init__.py"
-        init_content = generate_init_py(tool.description)
+        init_content = generate_init_py(tool.description, tool.server, tool.name)
         init_path.write_text(init_content)
         logger.debug(f"Generated {init_path}")

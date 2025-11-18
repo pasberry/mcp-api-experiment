@@ -18,7 +18,39 @@ This directory contains examples demonstrating the MCP Skill Framework.
 
 ## Examples
 
-### 1. Basic Usage (`basic_usage.py`)
+### 1. Generate Server Wrappers (`generate_servers.py`) - **START HERE**
+
+**Developer tool** for generating MCP server wrappers. Run this **before** building your agent.
+
+**Run:**
+```bash
+python examples/generate_servers.py
+```
+
+**What it does:**
+1. Connects to configured MCP servers
+2. Introspects available tools
+3. Generates Python wrapper functions in `servers/`
+4. Creates documentation for each tool
+
+**When to run:**
+- Once, before starting agent development
+- Anytime you add/change MCP servers
+- Commit generated `servers/` to git with your agent code
+
+### 2. Agent Discovery Pattern (`agent_discovery_pattern.py`)
+
+Shows how to integrate skill discovery tools into your agent framework (LangGraph, CrewAI, etc.):
+- Discovery tools for skills
+- System prompt template
+- Complete agent workflow example
+
+**Run:**
+```bash
+python examples/agent_discovery_pattern.py
+```
+
+### 3. Basic Usage (`basic_usage.py`)
 
 Demonstrates the complete workflow:
 - Code generation from MCP servers
@@ -38,7 +70,7 @@ python examples/basic_usage.py
 4. Creates new skills and persists them
 5. Shows database statistics
 
-### 2. Skill Persistence Demo (`skill_persistence_demo.py`)
+### 4. Skill Persistence Demo (`skill_persistence_demo.py`)
 
 Demonstrates:
 - Creating skills across multiple sessions
@@ -88,7 +120,7 @@ Generated APIs provide clean wrappers around MCP tools:
 # Generated in servers/filesystem/read_file/main.py
 from mcp_skill_framework.runtime import mcp_call
 
-def execute(path: str) -> dict:
+def filesystem_read_file(path: str) -> dict:
     """Read contents of a file."""
     return mcp_call('filesystem', 'read_file', {'path': path})
 ```

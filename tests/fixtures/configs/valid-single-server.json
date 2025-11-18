@@ -1,0 +1,8 @@
+{
+  "servers": [
+    {
+      "name": "test_server",
+      "command": "echo test"
+    }
+  ]
+}

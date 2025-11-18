@@ -1,0 +1,10 @@
+{
+  "servers": [
+    {
+      "name": "incomplete_server"
+    },
+    {
+      "command": "echo missing-name"
+    }
+  ]
+}

@@ -60,7 +60,87 @@ pip install -e .
 pip install -e ".[dev]"
 ```
 
-## Quick Start
+## Developer Workflow
+
+### Step 1: Generate MCP Server Wrappers (One-Time)
+
+Before running your agent, generate Python wrappers for your MCP servers:
+
+```bash
+# 1. Configure your MCP servers in mcp-servers.json
+cat > mcp-servers.json << 'EOF'
+{
+  "servers": [
+    {
+      "name": "filesystem",
+      "command": "npx -y @modelcontextprotocol/server-filesystem /tmp"
+    },
+    {
+      "name": "github",
+      "command": "npx -y @modelcontextprotocol/server-github"
+    }
+  ]
+}
+EOF
+
+# 2. Run code generation
+mcp-generate mcp-servers.json
+
+# 3. Commit the generated code
+git add servers/
+git commit -m "Add MCP server wrappers"
+```
+
+This creates the `servers/` package that your agent will import. Only re-run when you add/change MCP servers.
+
+**Alternative**: Use Python API directly:
+```python
+from mcp_skill_framework.cli import generate_servers
+
+generate_servers(
+    servers=[
+        {"name": "filesystem", "command": "npx -y @modelcontextprotocol/server-filesystem /tmp"}
+    ],
+    servers_dir="servers"
+)
+```
+
+**What it generates:**
+```
+servers/
+├── filesystem/
+│   ├── read_file/
+│   │   ├── main.py              # Python function wrapper
+│   │   ├── README.md            # Tool documentation
+│   │   └── __init__.py
+│   └── write_file/
+└── google_drive/
+    └── list_files/
+```
+
+### Step 2: Build Your Agent
+
+Your agent code imports from the generated `servers/` package:
+
+```python
+# my_agent.py
+from servers.filesystem.read_file import filesystem_read_file
+
+# Use in your agent
+content = filesystem_read_file("/tmp/test.txt")
+```
+
+### Step 3: Run Your Agent
+
+The `servers/` package is now available like any Python library:
+
+```bash
+python my_agent.py
+```
+
+## Quick Start (Agent Runtime)
+
+Once you've generated the `servers/` package (see Developer Workflow above):
 
 ```python
 import asyncio
@@ -75,19 +155,7 @@ async def main():
         skills_db="skills.db"
     )
 
-    # === ONE-TIME: Code Generation ===
-    # Register MCP servers
-    api.add_mcp_server(
-        name="filesystem",
-        command="npx -y @modelcontextprotocol/server-filesystem /tmp"
-    )
-
-    # Generate Python libraries from MCP tools
-    api.generate_libraries()
-    # → Creates servers/filesystem/ package
-    # → Commit servers/ to git with your agent code
-
-    # === EVERY SESSION: Hydrate Skills ===
+    # === HYDRATE SKILLS FROM DATABASE ===
     # Restore skills from database
     count = await api.hydrate_skills()
     print(f"Loaded {count} skills from previous sessions")
@@ -98,11 +166,11 @@ async def main():
     # === AGENT CREATES NEW SKILLS ===
     # Agent writes code using generated APIs
     skill_code = '''
-from servers.filesystem.read_file import execute as read_file
+from servers.filesystem.read_file import filesystem_read_file
 
 def count_lines(filepath):
     """Count lines in a file."""
-    content = read_file(filepath)
+    content = filesystem_read_file(filepath)
     return len(content.split('\\n'))
 '''
 
@@ -148,7 +216,7 @@ The framework generates Python wrapper functions for each MCP tool:
 }
 
 # Generated Python API (clean, few tokens)
-def execute(path: str) -> dict:
+def google_drive_list_files(path: str) -> dict:
     """List files in directory."""
     return mcp_call('google_drive', 'list_files', {'path': path})
 ```
