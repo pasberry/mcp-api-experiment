@@ -24,7 +24,7 @@ This directory contains examples demonstrating the MCP Skill Framework.
 
 **Run:**
 ```bash
-python examples/generate_servers.py
+python -m src.generate_servers
 ```
 
 **What it does:**
