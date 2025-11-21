@@ -8,7 +8,7 @@ import argparse
 import sys
 from pathlib import Path
 from typing import Dict, List
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 
 def generate_servers(

@@ -23,7 +23,7 @@ Example:
 """
 
 from pathlib import Path
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 
 def main():

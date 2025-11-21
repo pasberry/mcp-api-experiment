@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, AsyncMock, patch, Mock
 import asyncio
 
-from mcp_skill_framework.connector import MCPConnector, ToolSchema
+from src.connector import MCPConnector, ToolSchema
 
 
 class TestToolSchema:
@@ -538,7 +538,7 @@ class TestGenerateApiFiles:
 
             # Verify function naming pattern
             assert "def test_server_read_file(" in main_py
-            assert "from mcp_skill_framework.runtime import mcp_call" in main_py
+            assert "from src.runtime import mcp_call" in main_py
             assert 'server="test_server"' in main_py
             assert 'tool="read_file"' in main_py
 

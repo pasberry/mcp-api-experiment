@@ -10,7 +10,7 @@ from pathlib import Path
 import tempfile
 import json
 
-from mcp_skill_framework import MCPApi, SkillManager, SkillsDatabase
+from src import MCPApi, SkillManager, SkillsDatabase
 
 
 class TestSkillsDatabase:

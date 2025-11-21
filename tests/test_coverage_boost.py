@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from mcp_skill_framework import MCPApi, SkillsDatabase, SkillManager
+from src import MCPApi, SkillsDatabase, SkillManager
 
 
 class TestDatabaseUpdateAndDelete:
@@ -269,7 +269,7 @@ class TestFrameworkContextManager:
     def test_context_manager_enter_exit(self):
         """Test __enter__ and __exit__ context manager methods."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            with patch("mcp_skill_framework.framework.MCPConnector") as MockConnector:
+            with patch("src.framework.MCPConnector") as MockConnector:
                 # Setup mocks
                 mock_connector = MockConnector.return_value
                 mock_connector.connect_all = MagicMock()

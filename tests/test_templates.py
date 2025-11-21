@@ -8,7 +8,7 @@ and __init__.py files from MCP tool schemas.
 import pytest
 from typing import List, Dict, Any
 
-from mcp_skill_framework.templates import (
+from src.templates import (
     generate_main_py,
     generate_readme_md,
     generate_init_py,
@@ -50,7 +50,7 @@ class TestMainPyGeneration:
         # Check function naming pattern
         assert "def test_server_test_tool(" in result
         assert "Test tool description" in result
-        assert "from mcp_skill_framework.runtime import mcp_call" in result
+        assert "from src.runtime import mcp_call" in result
         assert 'server="test_server"' in result
         assert 'tool="test_tool"' in result
 

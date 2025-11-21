@@ -39,7 +39,7 @@ This demo proves that the MCP Skill Framework works end-to-end:
 1. **Install dependencies**:
    ```bash
    cd calculator_demo
-   pip install -e ..  # Install mcp_skill_framework
+   pip install -e ..  # Install the MCP skill framework
    pip install -r requirements.txt
    ```
 

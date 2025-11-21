@@ -30,7 +30,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 
 # Import MCP Skill Framework
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 
 # Agent State

@@ -7,7 +7,7 @@ would integrate the skill discovery tools for their agent.
 
 import asyncio
 from typing import Optional
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 
 # ===================================================================

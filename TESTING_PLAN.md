@@ -370,7 +370,7 @@ pytest tests/ -m "integration" --timeout=60
 pytest tests/ -m "e2e" --timeout=120
 
 # Coverage report
-pytest tests/ --cov=mcp_skill_framework --cov-report=html
+pytest tests/ --cov=src --cov-report=html
 ```
 
 ---

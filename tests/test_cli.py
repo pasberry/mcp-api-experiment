@@ -11,7 +11,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 import argparse
 
-from mcp_skill_framework.cli import generate_servers, generate_command, main
+from src.cli import generate_servers, generate_command, main
 
 
 class TestGenerateServersFunction:
@@ -23,7 +23,7 @@ class TestGenerateServersFunction:
             servers = [{"name": "test_server", "command": "echo test"}]
 
             # Mock the API to prevent actual MCP server spawning
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -51,7 +51,7 @@ class TestGenerateServersFunction:
                 {"name": "server3", "command": "echo server3"},
             ]
 
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -74,7 +74,7 @@ class TestGenerateServersFunction:
                 {"command": "echo missing-name"},  # Invalid - missing name
             ]
 
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -91,7 +91,7 @@ class TestGenerateServersFunction:
         with tempfile.TemporaryDirectory() as tmpdir:
             servers = [{"name": "test", "command": "echo test"}]
 
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -107,7 +107,7 @@ class TestGenerateServersFunction:
         with tempfile.TemporaryDirectory() as tmpdir:
             servers = [{"name": "test", "command": "echo test"}]
 
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -122,7 +122,7 @@ class TestGenerateServersFunction:
             custom_dir = f"{tmpdir}/custom-servers"
             servers = [{"name": "test", "command": "echo test"}]
 
-            with patch("mcp_skill_framework.cli.MCPApi") as mock_api_class:
+            with patch("src.cli.MCPApi") as mock_api_class:
                 mock_api = MagicMock()
                 mock_api_class.return_value = mock_api
 
@@ -150,7 +150,7 @@ class TestGenerateCommand:
                 config=str(config_path), output="servers", quiet=False, verbose=False
             )
 
-            with patch("mcp_skill_framework.cli.generate_servers") as mock_generate:
+            with patch("src.cli.generate_servers") as mock_generate:
                 result = generate_command(args)
 
                 assert result == 0
@@ -214,7 +214,7 @@ class TestGenerateCommand:
                 config=str(config_path), output="servers", quiet=True, verbose=False
             )
 
-            with patch("mcp_skill_framework.cli.generate_servers") as mock_generate:
+            with patch("src.cli.generate_servers") as mock_generate:
                 generate_command(args)
 
                 call_args = mock_generate.call_args[1]
@@ -234,7 +234,7 @@ class TestGenerateCommand:
                 verbose=False,
             )
 
-            with patch("mcp_skill_framework.cli.generate_servers") as mock_generate:
+            with patch("src.cli.generate_servers") as mock_generate:
                 generate_command(args)
 
                 call_args = mock_generate.call_args[1]
@@ -251,7 +251,7 @@ class TestGenerateCommand:
                 config=str(config_path), output="servers", quiet=False, verbose=False
             )
 
-            with patch("mcp_skill_framework.cli.generate_servers") as mock_generate:
+            with patch("src.cli.generate_servers") as mock_generate:
                 mock_generate.side_effect = Exception("Test error")
 
                 result = generate_command(args)
@@ -272,7 +272,7 @@ class TestCLIMain:
             test_args = [str(config_path)]
 
             with patch("sys.argv", ["mcp-generate"] + test_args):
-                with patch("mcp_skill_framework.cli.generate_command") as mock_cmd:
+                with patch("src.cli.generate_command") as mock_cmd:
                     mock_cmd.return_value = 0
 
                     result = main()
@@ -295,7 +295,7 @@ class TestCLIMain:
             test_args = [str(config_path), "--output", "my-servers"]
 
             with patch("sys.argv", ["mcp-generate"] + test_args):
-                with patch("mcp_skill_framework.cli.generate_command") as mock_cmd:
+                with patch("src.cli.generate_command") as mock_cmd:
                     mock_cmd.return_value = 0
 
                     main()
@@ -313,7 +313,7 @@ class TestCLIMain:
             test_args = [str(config_path), "--quiet"]
 
             with patch("sys.argv", ["mcp-generate"] + test_args):
-                with patch("mcp_skill_framework.cli.generate_command") as mock_cmd:
+                with patch("src.cli.generate_command") as mock_cmd:
                     mock_cmd.return_value = 0
 
                     main()
@@ -331,7 +331,7 @@ class TestCLIMain:
             test_args = [str(config_path), "--verbose"]
 
             with patch("sys.argv", ["mcp-generate"] + test_args):
-                with patch("mcp_skill_framework.cli.generate_command") as mock_cmd:
+                with patch("src.cli.generate_command") as mock_cmd:
                     mock_cmd.return_value = 0
 
                     main()
@@ -365,7 +365,7 @@ class TestConfigFileFormats:
                 config=str(config_path), output="servers", quiet=False, verbose=False
             )
 
-            with patch("mcp_skill_framework.cli.generate_servers") as mock_generate:
+            with patch("src.cli.generate_servers") as mock_generate:
                 result = generate_command(args)
 
                 assert result == 0

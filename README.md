@@ -95,7 +95,7 @@ This creates the `servers/` package that your agent will import. Only re-run whe
 
 **Alternative**: Use Python API directly:
 ```python
-from mcp_skill_framework.cli import generate_servers
+from src.cli import generate_servers
 
 generate_servers(
     servers=[
@@ -144,7 +144,7 @@ Once you've generated the `servers/` package (see Developer Workflow above):
 
 ```python
 import asyncio
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 async def main():
     # Initialize API with agent name (required)
@@ -334,7 +334,7 @@ python examples/skill_persistence_demo.py
 pytest tests/ -v
 
 # Run with coverage
-pytest tests/ --cov=mcp_skill_framework --cov-report=html
+pytest tests/ --cov=src --cov-report=html
 ```
 
 ## Development
