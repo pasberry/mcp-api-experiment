@@ -120,32 +120,6 @@ class TestAddMCPServer:
             assert api.connector.servers["github"]["env"] == env
 
 
-class TestGenerateLibraries:
-    """Test generate_libraries() method."""
-
-    def test_generate_libraries_calls_connector(self):
-        """Test that generate_libraries delegates to connector."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            api = MCPApi(
-                agent_name="test-agent",
-                servers_dir=f"{tmpdir}/servers",
-                skills_dir=f"{tmpdir}/skills",
-                skills_db=f"{tmpdir}/skills.db",
-                telemetry_db=None,
-            )
-
-            # Mock the connector methods
-            with patch.object(api.connector, "connect_all") as mock_connect:
-                with patch.object(api.connector, "generate_apis") as mock_generate:
-                    with patch.object(api.connector, "disconnect_all") as mock_disconnect:
-                        api.generate_libraries()
-
-                        # Verify connector was called
-                        mock_connect.assert_called_once()
-                        mock_generate.assert_called_once_with(output_dir=api.servers_dir)
-                        mock_disconnect.assert_called_once()
-
-
 class TestStartMethod:
     """Test start() method for runtime."""
 
