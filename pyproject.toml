@@ -38,8 +38,9 @@ dev = [
 [project.scripts]
 mcp-generate = "src.cli:main"
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.setuptools]
+packages = ["src"]
+package-dir = {"" = "."}
 
 [tool.black]
 line-length = 100
