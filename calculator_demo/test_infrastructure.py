@@ -16,7 +16,7 @@ from pathlib import Path
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 def test_generated_wrappers():
     """Test that generated wrappers can be imported."""

@@ -118,7 +118,7 @@ Generated APIs provide clean wrappers around MCP tools:
 
 ```python
 # Generated in servers/filesystem/read_file/main.py
-from mcp_skill_framework.runtime import mcp_call
+from src.runtime import mcp_call
 
 def filesystem_read_file(path: str) -> dict:
     """Read contents of a file."""

@@ -9,7 +9,7 @@ import tempfile
 import json
 from pathlib import Path
 
-from mcp_skill_framework import SkillManager, SkillsDatabase
+from src import SkillManager, SkillsDatabase
 
 
 class TestSkillManagerEdgeCases:

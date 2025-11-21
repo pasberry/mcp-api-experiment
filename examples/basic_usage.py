@@ -11,7 +11,7 @@ This example demonstrates the new MCP Skill Framework workflow:
 import asyncio
 import logging
 from pathlib import Path
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

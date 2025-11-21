@@ -5,7 +5,7 @@ echo "🔧 Generating MCP wrapper libraries..."
 echo ""
 
 # Run the mcp-generate CLI tool
-python -m mcp_skill_framework.cli mcp-servers.json --output servers
+python -m src.cli mcp-servers.json --output servers
 
 if [ $? -eq 0 ]; then
     echo ""

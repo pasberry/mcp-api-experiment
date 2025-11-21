@@ -10,7 +10,7 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 def main():
     print("🔧 Generating MCP wrapper libraries...")

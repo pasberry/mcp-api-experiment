@@ -9,7 +9,7 @@ from jinja2 import Template
 MAIN_PY_TEMPLATE = Template("""\"\"\"{{ description }}\"\"\"
 
 from typing import Any
-from mcp_skill_framework.runtime import mcp_call
+from src.runtime import mcp_call
 
 
 def {{ server }}_{{ tool_name }}({{ parameters }}) -> {{ return_type }}:

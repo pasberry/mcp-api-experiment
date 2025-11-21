@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock, patch, AsyncMock
 
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 
 class TestMCPApiInitialization:

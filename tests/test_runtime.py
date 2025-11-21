@@ -10,7 +10,7 @@ import asyncio
 from unittest.mock import MagicMock, AsyncMock, patch
 from typing import Any, Dict
 
-from mcp_skill_framework.runtime import mcp_call, MCPRuntime, _runtime_instance
+from src.runtime import mcp_call, MCPRuntime, _runtime_instance
 
 
 class TestMCPCallGlobalFunction:
@@ -19,7 +19,7 @@ class TestMCPCallGlobalFunction:
     def test_mcp_call_without_runtime_raises_error(self):
         """Test that mcp_call() raises error when runtime not initialized."""
         # Clear global instance
-        import mcp_skill_framework.runtime as runtime_module
+        import src.runtime as runtime_module
 
         runtime_module._runtime_instance = None
 
@@ -33,7 +33,7 @@ class TestMCPCallGlobalFunction:
         mock_runtime.call.return_value = "test_result"
 
         # Set as global instance
-        import mcp_skill_framework.runtime as runtime_module
+        import src.runtime as runtime_module
 
         runtime_module._runtime_instance = mock_runtime
 
@@ -61,7 +61,7 @@ class TestMCPRuntimeInitialization:
 
     def test_runtime_sets_global_instance(self):
         """Test that runtime sets itself as global instance."""
-        import mcp_skill_framework.runtime as runtime_module
+        import src.runtime as runtime_module
 
         # Clear global
         runtime_module._runtime_instance = None

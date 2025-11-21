@@ -12,7 +12,7 @@ import asyncio
 import logging
 from pathlib import Path
 import shutil
-from mcp_skill_framework import MCPApi
+from src import MCPApi
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
